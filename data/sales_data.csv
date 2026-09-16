@@ -1,0 +1,11 @@
+Order ID,Order Date,Product,Category,Region,Quantity,Unit Price,Revenue,Cost,Profit
+ORD0001,2025-08-27,Laptop Pro,Electronics,South,7,1286.06,9002.42,6609.67,2392.75
+ORD0002,2025-07-12,Monitor 24,Electronics,West,1,231.49,231.49,161.92,69.57
+ORD0003,2025-11-03,Notebook Set,Stationery,South,2,17.53,35.06,15.35,19.71
+ORD0004,2025-04-24,Printer,Office Supplies,North,7,305.39,2137.73,1592.78,544.95
+ORD0005,2025-03-15,Wireless Mouse,Electronics,East,7,33.34,233.38,129.57,103.81
+ORD0006,2025-10-20,Desk Lamp,Furniture,North,6,51.39,308.34,157.73,150.61
+ORD0007,2025-06-02,Office Chair,Furniture,West,4,248.96,995.84,625.42,370.42
+ORD0008,2025-01-19,Keyboard,Electronics,South,4,73.42,293.68,164.43,129.25
+ORD0009,2025-12-05,Printer Ink,Office Supplies,North,8,68.22,545.76,319.37,226.39
+ORD0010,2025-05-11,Desk Organizer,Stationery,East,3,24.96,74.88,34.44,40.44
