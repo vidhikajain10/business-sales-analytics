@@ -52,6 +52,10 @@ def load_data():
 
 
 def make_dashboard(df, region="", category="", start_date="", end_date=""):
+    available_regions = sorted(df["Region"].unique().tolist())
+    available_categories = sorted(df["Category"].unique().tolist())
+    min_date = df["Order Date"].min().strftime("%Y-%m-%d") if len(df) else ""
+    max_date = df["Order Date"].max().strftime("%Y-%m-%d") if len(df) else ""
     if region: df = df[df["Region"] == region]
     if category: df = df[df["Category"] == category]
     if start_date: df = df[df["Order Date"] >= pd.to_datetime(start_date)]
@@ -62,7 +66,7 @@ def make_dashboard(df, region="", category="", start_date="", end_date=""):
     products = df.groupby("Product", as_index=False)[["Revenue", "Profit"]].sum().sort_values("Revenue", ascending=False).head(10)
     regions = df.groupby("Region", as_index=False)["Revenue"].sum().sort_values("Revenue", ascending=False)
     margin = df["Profit"].sum() / revenue * 100 if revenue else 0
-    return {"kpis":{"revenue":round(revenue,2),"profit":round(df["Profit"].sum(),2),"transactions":int(transactions),"quantity":int(df["Quantity"].sum()),"aov":round(revenue/transactions,2) if transactions else 0,"margin":round(margin,1)},"monthly":monthly.to_dict("records"),"products":products.to_dict("records"),"regions":regions.to_dict("records"),"rows":len(df),"top_product":products.iloc[0]["Product"] if len(products) else "—"}
+    return {"kpis":{"revenue":round(revenue,2),"profit":round(df["Profit"].sum(),2),"transactions":int(transactions),"quantity":int(df["Quantity"].sum()),"aov":round(revenue/transactions,2) if transactions else 0,"margin":round(margin,1)},"monthly":monthly.to_dict("records"),"products":products.to_dict("records"),"regions":regions.to_dict("records"),"rows":len(df),"top_product":products.iloc[0]["Product"] if len(products) else "—","filters":{"regions":available_regions,"categories":available_categories,"min_date":min_date,"max_date":max_date}}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -71,8 +75,8 @@ def home():
 
 @app.get("/api/filters")
 def filters():
-    df = load_data()
-    return {"regions":sorted(df["Region"].unique().tolist()),"categories":sorted(df["Category"].unique().tolist()),"min_date":df["Order Date"].min().strftime("%Y-%m-%d"),"max_date":df["Order Date"].max().strftime("%Y-%m-%d")}
+    d = load_data()
+    return {"regions":sorted(d["Region"].unique().tolist()),"categories":sorted(d["Category"].unique().tolist()),"min_date":d["Order Date"].min().strftime("%Y-%m-%d"),"max_date":d["Order Date"].max().strftime("%Y-%m-%d")}
 
 @app.get("/api/health")
 def health():
@@ -93,6 +97,5 @@ async def analyze(file: UploadFile = File(...), region: str="", category: str=""
         raise HTTPException(400, "Please upload a CSV or Excel file.")
     cleaned = clean_data(df)
     result = make_dashboard(cleaned, region, category, start_date, end_date)
-    result["filters"] = {"regions":sorted(cleaned["Region"].unique().tolist()),"categories":sorted(cleaned["Category"].unique().tolist()),"min_date":cleaned["Order Date"].min().strftime("%Y-%m-%d"),"max_date":cleaned["Order Date"].max().strftime("%Y-%m-%d")}
     result["source"] = file.filename
     return result
