@@ -23,7 +23,11 @@ ALIASES = {
 
 
 def clean_data(df):
-    df = df.rename(columns=lambda x: ALIASES.get(str(x).strip().lower(), str(x).strip())).drop_duplicates().copy()
+    raw_rows = len(df)
+    renamed = df.rename(columns=lambda x: ALIASES.get(str(x).strip().lower(), str(x).strip())).copy()
+    before_duplicates = len(renamed)
+    df = renamed.drop_duplicates().copy()
+    duplicates_removed = before_duplicates - len(df)
     required = ["Order ID", "Order Date", "Product", "Quantity"]
     missing = [x for x in required if x not in df.columns]
     if missing:
@@ -37,6 +41,7 @@ def clean_data(df):
             df[col] = pd.NA
         df[col] = pd.to_numeric(df[col], errors="coerce")
     df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
+    invalid_dates = int(df["Order Date"].isna().sum())
     df = df.dropna(subset=["Order Date"])
     df["Quantity"] = df["Quantity"].fillna(0)
     df["Revenue"] = df["Revenue"].fillna(df["Quantity"] * df["Unit Price"])
@@ -44,6 +49,9 @@ def clean_data(df):
     df["Profit"] = df["Profit"].fillna(df["Revenue"] - df["Cost"])
     df[["Revenue", "Cost", "Profit"]] = df[["Revenue", "Cost", "Profit"]].fillna(0)
     df["Month"] = df["Order Date"].dt.to_period("M").astype(str)
+    df.attrs["raw_rows"] = raw_rows
+    df.attrs["duplicates_removed"] = duplicates_removed
+    df.attrs["invalid_dates_removed"] = invalid_dates
     return df
 
 
@@ -56,6 +64,9 @@ def make_dashboard(df, region="", category="", start_date="", end_date=""):
     available_categories = sorted(df["Category"].unique().tolist())
     min_date = df["Order Date"].min().strftime("%Y-%m-%d") if len(df) else ""
     max_date = df["Order Date"].max().strftime("%Y-%m-%d") if len(df) else ""
+    raw_rows = int(df.attrs.get("raw_rows", len(df)))
+    duplicates_removed = int(df.attrs.get("duplicates_removed", 0))
+    invalid_dates_removed = int(df.attrs.get("invalid_dates_removed", 0))
     if region: df = df[df["Region"] == region]
     if category: df = df[df["Category"] == category]
     if start_date: df = df[df["Order Date"] >= pd.to_datetime(start_date)]
@@ -66,7 +77,7 @@ def make_dashboard(df, region="", category="", start_date="", end_date=""):
     products = df.groupby("Product", as_index=False)[["Revenue", "Profit"]].sum().sort_values("Revenue", ascending=False).head(10)
     regions = df.groupby("Region", as_index=False)["Revenue"].sum().sort_values("Revenue", ascending=False)
     margin = df["Profit"].sum() / revenue * 100 if revenue else 0
-    return {"kpis":{"revenue":round(revenue,2),"profit":round(df["Profit"].sum(),2),"transactions":int(transactions),"quantity":int(df["Quantity"].sum()),"aov":round(revenue/transactions,2) if transactions else 0,"margin":round(margin,1)},"monthly":monthly.to_dict("records"),"products":products.to_dict("records"),"regions":regions.to_dict("records"),"rows":len(df),"top_product":products.iloc[0]["Product"] if len(products) else "—","filters":{"regions":available_regions,"categories":available_categories,"min_date":min_date,"max_date":max_date}}
+    return {"kpis":{"revenue":round(revenue,2),"profit":round(df["Profit"].sum(),2),"transactions":int(transactions),"quantity":int(df["Quantity"].sum()),"aov":round(revenue/transactions,2) if transactions else 0,"margin":round(margin,1)},"monthly":monthly.to_dict("records"),"products":products.to_dict("records"),"regions":regions.to_dict("records"),"rows":len(df),"top_product":products.iloc[0]["Product"] if len(products) else "—","data_quality":{"raw_rows":raw_rows,"cleaned_rows":len(df),"duplicates_removed":duplicates_removed,"invalid_dates_removed":invalid_dates_removed},"filters":{"regions":available_regions,"categories":available_categories,"min_date":min_date,"max_date":max_date}}
 
 
 @app.get("/", response_class=HTMLResponse)
