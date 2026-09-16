@@ -1,11 +1,18 @@
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 import pandas as pd
 
 app = FastAPI(title="Business Sales Analytics API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-DATA = "data/sales_data.csv"
+ROOT = Path(__file__).resolve().parents[1]
+DATA = ROOT / "data" / "sales_data.csv"
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return (ROOT / "index.html").read_text(encoding="utf-8")
 
 def load_data():
     df = pd.read_csv(DATA).drop_duplicates().copy()
